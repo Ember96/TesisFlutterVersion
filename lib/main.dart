@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 //import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 void main() {
@@ -31,23 +32,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
 
-    void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>[];
-
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
-    } else {
-      favorites.add(current);
-    }
-    notifyListeners();
-  }
 }
 
 // ...
@@ -64,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Widget page;
       switch (selectedIndex) {
         case 0:
-          page = GeneratorPage();
+          page = UserProfile();
           break;
         case 1:
           page = TakePic();
@@ -87,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.favorite),
-                      label: Text('Favorites'),
+                      label: Text('Selfies'),
                     ),
                   ],
                   selectedIndex: selectedIndex,
@@ -113,39 +98,52 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 
-class GeneratorPage extends StatelessWidget {
+class UserProfile extends StatefulWidget {
+  @override
+  State<UserProfile> createState() => _UserProfileState();
+}
+
+class _UserProfileState extends State<UserProfile> {
+  String name = Platform.operatingSystem;
+
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          BigCard(pair: pair),
+          Text("Entonces te llamas:"),
+          Container(
+            margin: EdgeInsets.all(25),
+            child: TextFormField(
+              initialValue: name,
+              onChanged: (value) {
+                setState(() {
+                  name = value;
+                  print(name);
+                });
+              },
+              decoration: const InputDecoration(
+                icon: Icon(Icons.person),
+                hintText: 'Introduce tu nombre',
+                labelText: 'Nombre',
+              ),
+            ),
+          ),
           SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton.icon(
                 onPressed: () {
-                  appState.toggleFavorite();
+                  saveToFile([["username", name]]);
                 },
-                icon: Icon(icon),
+                icon: Icon( Icons.favorite_border_outlined),
                 label: Text('Like'),
               ),
               SizedBox(width: 10),
               ElevatedButton(
                 onPressed: () {
-                  appState.getNext();
                 },
                 child: Text('Next'),
               ),
@@ -281,6 +279,15 @@ Future<void> ipfsUpload(String filePath) async {
     // Handle error
     print('Failed to upload file to IPFS. Error: ${response.statusCode}');
   }
+}
+
+void saveToFile(List<List<String>> content) async {
+  final writer = await SharedPreferences.getInstance();
+  for (var i = 0; i < content.length; i++) {
+    await writer.setString(content[i][0], content[i][1]);
+  }
+  final checking = writer.getString('username');
+  print(checking);
 }
 
 /*Future<void> ipfsUpload(File file) async {
